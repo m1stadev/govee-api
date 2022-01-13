@@ -1,3 +1,6 @@
+from datetime import datetime
+
+
 class GoveeError(Exception):
     pass
 
@@ -10,4 +13,8 @@ class AuthError(APIError):
 
 
 class RatelimitError(APIError):
-    pass
+    def __init__(self, msg: str, time: int):
+        self.message = msg
+        self.time = datetime.fromtimestamp(time)
+
+    def __str__(self): return self.message

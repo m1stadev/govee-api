@@ -1,8 +1,8 @@
-from cachetools import cached, TTLCache
+from aiocache import cached
 from typing import Optional
 from utils import colors, errors
 
-import requests
+import aiohttp
 
 
 API_URL = 'https://developer-api.govee.com/v1/devices/'
@@ -10,47 +10,46 @@ API_CONTROL_URL = API_URL + 'control/'
 API_STATE_URL = API_URL + 'state/'
 
 class Govee:
-    def __init__(self, api_key):
+    def __init__(self, session: aiohttp.ClientSession, api_key: str):
+        self.session = session
         self.headers = {'Govee-API-Key': api_key}
 
-    @property
-    @cached(cache=TTLCache(maxsize=1, ttl=60))
-    def devices(self) -> Optional[list[dict]]:
-        r = requests.get(API_URL, headers=self.headers)
-        if r.status_code == 403:
-            raise errors.AuthError('Invalid API key provided.')
+    @cached(ttl=60)
+    async def get_devices(self) -> Optional[list[dict]]:
+        async with self.session.get(API_URL, headers=self.headers) as s:
+            if s.status == 403:
+                raise errors.AuthError('Invalid API key provided.')
 
-        elif r.status_code == 429:
-            raise errors.RatelimitError('Ratelimit reached.')
+            elif s.status == 429:
+                raise errors.RatelimitError('Ratelimit reached.', int(s.headers['Rate-Limit-Reset']))
 
-        return r.json()['data']['devices']
+            return (await s.json())['data']['devices']
 
-    def _get_state(self, device: dict) -> Optional[dict]:
+    async def _get_state(self, device: dict) -> Optional[dict]:
         data = {
             'device': device['device'],
             'model': device['model']
         }
 
-        r = requests.get(API_STATE_URL, params=data, headers=self.headers)
-        if r.status_code == 429:
-            raise errors.RatelimitError('Ratelimit reached.')
+        async with self.session.get(API_STATE_URL, params=data, headers=self.headers) as s:
+            if s.status == 429:
+                raise errors.RatelimitError('Ratelimit reached.', int(s.headers['Rate-Limit-Reset']))
+            elif s.status == 400:
+                raise errors.APIError('Invalid data passed to API.')
 
-        elif r.status_code == 400:
-            raise errors.APIError('Invalid data passed to API.')
+            return (await s.json())['data']
 
-        return r.json()['data']
-
-    def get_brightness(self, device: dict) -> Optional[int]:
-        device_state = self._get_state(device)
+    async def get_brightness(self, device: dict) -> Optional[int]:
+        device_state = await self._get_state(device)
 
         return next(_['brightness'] for _ in device_state['properties'] if 'brightness' in _.keys())
 
-    def get_color(self, device: dict) -> Optional[int]:
-        device_state = self._get_state(device)
+    async def get_color(self, device: dict) -> Optional[int]:
+        device_state = await self._get_state(device)
 
         return next(_['color'] for _ in device_state['properties'] if 'color' in _.keys())
 
-    def set_brightness(self, device: dict, brightness: int) -> None:
+    async def set_brightness(self, device: dict, brightness: int) -> None:
         if not 1 <= brightness <= 100:
             raise ValueError('Brightness must be between 1-100.')
 
@@ -63,14 +62,13 @@ class Govee:
             }
         }
 
-        r = requests.put(API_CONTROL_URL, json=data, headers=self.headers)
-        if r.status_code == 429:
-            raise errors.RatelimitError('Ratelimit reached.')
+        async with self.session.put(API_CONTROL_URL, json=data, headers=self.headers) as s:
+            if s.status == 429:
+                raise errors.RatelimitError('Ratelimit reached.', int(s.headers['Rate-Limit-Reset']))
+            elif s.status == 400:
+                raise errors.APIError('Invalid data passed to API.')
 
-        elif r.status_code == 400:
-            raise errors.APIError('Invalid data passed to API.')
-
-    def set_color(self, device: dict, color: str) -> None:
+    async def set_color(self, device: dict, color: str) -> None:
         if getattr(colors, color.upper()) is None:
             raise KeyError('Invalid color passed.')
 
@@ -83,9 +81,8 @@ class Govee:
             }
         }
 
-        r = requests.put(API_CONTROL_URL, json=data, headers=self.headers)
-        if r.status_code == 429:
-            raise errors.RatelimitError('Ratelimit reached.')
-
-        elif r.status_code == 400:
-            raise errors.APIError('Invalid data passed to API.')
+        async with self.session.put(API_CONTROL_URL, json=data, headers=self.headers) as s:
+            if s.status == 429:
+                raise errors.RatelimitError('Ratelimit reached.', int(s.headers['Rate-Limit-Reset']))
+            elif s.status == 400:
+                raise errors.APIError('Invalid data passed to API.')
