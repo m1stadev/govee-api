@@ -1,2 +1,2 @@
-aiocache
-aiohttp
+cachetools
+requests
