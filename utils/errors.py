@@ -4,6 +4,7 @@ from datetime import datetime
 class GoveeError(Exception):
     pass
 
+
 class APIError(GoveeError):
     pass
 

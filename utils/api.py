@@ -4,10 +4,10 @@ from utils import colors, errors
 
 import aiohttp
 
-
 API_URL = 'https://developer-api.govee.com/v1/devices/'
 API_CONTROL_URL = API_URL + 'control/'
 API_STATE_URL = API_URL + 'state/'
+
 
 class Govee:
     def __init__(self, session: aiohttp.ClientSession, api_key: str):
