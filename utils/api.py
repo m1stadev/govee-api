@@ -13,7 +13,6 @@ API_STATE_URL = API_URL + 'state/'
 class Govee:
     def __init__(self, api_key: str):
         self.headers = {'Govee-API-Key': api_key}
-        self.seizure_running = False
 
     @property
     @cached(cache=TTLCache(maxsize=1, ttl=60))
@@ -104,8 +103,10 @@ class Govee:
             raise errors.APIError('Invalid data passed to API.')
 
     def set_color(self, device: dict, color: str) -> None:
-        if getattr(Color, color.lower()) is None:
-            raise KeyError('Invalid color passed.')
+        try:
+            getattr(Color, color.lower())
+        except AttributeError as e:
+            raise KeyError('Invalid color passed.') from e
 
         data = {
             'device': device['device'],
