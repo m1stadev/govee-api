@@ -13,7 +13,11 @@ app = FastAPI()
 api = Govee(API_KEY)
 
 @app.get('/govee/devices')
-def get_devices(): return [_['device'] for _ in api.devices]
+def get_devices(api_key: str=Header(None)):
+    if api_key != API_KEY:
+        raise errors.AuthError('Invalid API key provided.')
+
+    return [_['device'] for _ in api.devices]
 
 @app.post('/govee/actions/enable')
 def enable_lights(device: types.DeviceData, api_key: str=Header(None)):
