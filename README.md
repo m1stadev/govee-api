@@ -14,7 +14,10 @@ To host, follow these steps:
         python3 -m venv --upgrade-deps env && source env/bin/activate
         pip3 install -Ur requirements.txt
 
-2. Start your instance:
+2. Set your Govee API key in the `GOVEE_API_KEY` environment variable.
+- Instructions on how to get an API key can be found [here](https://twitter.com/GoveeOfficial/status/1383962664217444353?s=20).
+
+3. Start your instance:
 
         gunicorn main:app --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:80
 
