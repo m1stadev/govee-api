@@ -15,7 +15,7 @@ To host, follow these steps:
         pip3 install -Ur requirements.txt
 
 2. Set your Govee API key in the `GOVEE_API_KEY` environment variable.
-- Instructions on how to get an API key can be found [here](https://twitter.com/GoveeOfficial/status/1383962664217444353?s=20).
+    - Instructions on how to get an API key can be found [here](https://twitter.com/GoveeOfficial/status/1383962664217444353?s=20).
 
 3. Start your instance:
 
