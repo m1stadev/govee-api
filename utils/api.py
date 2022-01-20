@@ -1,6 +1,7 @@
 from cachetools import cached, TTLCache
 from typing import Optional
-from utils import colors, errors
+from utils.colors import Color
+from utils import errors
 
 import requests
 
@@ -103,7 +104,7 @@ class Govee:
             raise errors.APIError('Invalid data passed to API.')
 
     def set_color(self, device: dict, color: str) -> None:
-        if getattr(colors, color.upper()) is None:
+        if getattr(Color, color.lower()) is None:
             raise KeyError('Invalid color passed.')
 
         data = {
@@ -111,7 +112,7 @@ class Govee:
             'model': device['model'],
             'cmd': {
                 'name': 'color',
-                'value': getattr(colors, color.upper())
+                'value': getattr(Color, color.lower())
             }
         }
 

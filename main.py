@@ -29,7 +29,7 @@ def _seizure():
 
     start_time = time.time()
     while (time.time() - start_time) < 10:
-        colors = ('aqua', 'blue', 'green', 'orange', 'pink', 'purple', 'red', 'white', 'yellow')
+        colors = [_ for _ in Color.__dict__ if not _.startswith('__')]
         api.set_color(devices[0], random.choice(colors))
 
     api.seizure_running = False
