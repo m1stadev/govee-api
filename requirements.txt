@@ -1,3 +1,5 @@
 cachetools
 fastapi
+gunicorn
 requests
+uvicorn[standard]
