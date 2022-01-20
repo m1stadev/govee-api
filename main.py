@@ -4,8 +4,10 @@ from fastapi import FastAPI, Header, HTTPException, Request
 from utils.api import Govee
 from utils import errors, types
 
+import os
 
-API_KEY = ''
+
+API_KEY = os.environ.get('GOVEE_API_KEY')
 
 app = FastAPI()
 api = Govee(API_KEY)
