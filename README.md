@@ -4,7 +4,7 @@
 [![Stars](https://img.shields.io/github/stars/m1stadev/govee-api)](https://github.com/m1stadev/govee-api/stargazers)
 [![LoC](https://img.shields.io/tokei/lines/github/m1stadev/govee-api)](https://github.com/m1stadev/govee-api)
 
-An API for simplifying interacting with [Govee](https://us.govee.com/) LED products using the [Govee API](https://govee-public.s3.amazonaws.com/developer-docs/GoveeAPIReference.pdf).
+An API for simplifying interacting with WiFi-enabled [Govee](https://us.govee.com/) LED products using the [Govee API](https://govee-public.s3.amazonaws.com/developer-docs/GoveeAPIReference.pdf).
 
 ## Running
 To host, follow these steps:
