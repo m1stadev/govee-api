@@ -13,6 +13,10 @@ class AuthError(APIError):
     pass
 
 
+class DevicesError(APIError):
+    pass
+
+
 class RatelimitError(APIError):
     def __init__(self, msg: str, time: int):
         self.message = msg

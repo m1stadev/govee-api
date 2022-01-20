@@ -12,15 +12,16 @@ API_STATE_URL = API_URL + 'state/'
 class Govee:
     def __init__(self, api_key: str):
         self.headers = {'Govee-API-Key': api_key}
+        self.seizure_running = False
 
     @property
     @cached(cache=TTLCache(maxsize=1, ttl=60))
-    def get_devices(self) -> Optional[list[dict]]:
+    def devices(self) -> Optional[list[dict]]:
         r = requests.get(API_URL, headers=self.headers)
-        if r.status == 403:
+        if r.status_code == 401:
             raise errors.AuthError('Invalid API key provided.')
 
-        elif r.status == 429:
+        elif r.status_code == 429:
             raise errors.RatelimitError('Ratelimit reached.', int(r.headers['Rate-Limit-Reset']))
 
         return r.json()['data']['devices']
@@ -29,12 +30,48 @@ class Govee:
         data = {_:device[_] for _ in ('device', 'model')}
 
         r = requests.get(API_STATE_URL, params=data, headers=self.headers)
-        if r.status == 429:
+        if r.status_code == 429:
             raise errors.RatelimitError('Ratelimit reached.', int(r.headers['Rate-Limit-Reset']))
-        elif r.status == 400:
+        elif r.status_code == 400:
             raise errors.APIError('Invalid data passed to API.')
 
-        return r.json()['data']
+        devices = r.json()['data']
+        if len(devices) == 0:
+            raise errors.DevicesError('No devices found.')
+
+        return devices
+
+    def disable(self, device: dict) -> None:
+        data = {
+            'device': device['device'],
+            'model': device['model'],
+            'cmd': {
+                'name': 'turn',
+                'value': 'off'
+            }
+        }
+
+        r = requests.put(API_CONTROL_URL, json=data, headers=self.headers)
+        if r.status_code == 429:
+            raise errors.RatelimitError('Ratelimit reached.', int(r.headers['Rate-Limit-Reset']))
+        elif r.status_code == 400:
+            raise errors.APIError('Invalid data passed to API.')
+    
+    def enable(self, device: dict) -> None:
+        data = {
+            'device': device['device'],
+            'model': device['model'],
+            'cmd': {
+                'name': 'turn',
+                'value': 'on'
+            }
+        }
+
+        r = requests.put(API_CONTROL_URL, json=data, headers=self.headers)
+        if r.status_code == 429:
+            raise errors.RatelimitError('Ratelimit reached.', int(r.headers['Rate-Limit-Reset']))
+        elif r.status_code == 400:
+            raise errors.APIError('Invalid data passed to API.')
 
     def get_brightness(self, device: dict) -> Optional[int]:
         device_state = self._get_state(device)
@@ -46,7 +83,7 @@ class Govee:
 
         return next(_['color'] for _ in device_state['properties'] if 'color' in _.keys())
 
-    async def set_brightness(self, device: dict, brightness: int) -> None:
+    def set_brightness(self, device: dict, brightness: int) -> None:
         if not 1 <= brightness <= 100:
             raise ValueError('Brightness must be between 1-100.')
 
@@ -60,12 +97,12 @@ class Govee:
         }
 
         r = requests.put(API_CONTROL_URL, json=data, headers=self.headers)
-        if r.status == 429:
+        if r.status_code == 429:
             raise errors.RatelimitError('Ratelimit reached.', int(r.headers['Rate-Limit-Reset']))
-        elif r.status == 400:
+        elif r.status_code == 400:
             raise errors.APIError('Invalid data passed to API.')
 
-    async def set_color(self, device: dict, color: str) -> None:
+    def set_color(self, device: dict, color: str) -> None:
         if getattr(colors, color.upper()) is None:
             raise KeyError('Invalid color passed.')
 
@@ -79,7 +116,7 @@ class Govee:
         }
 
         r = requests.put(API_CONTROL_URL, json=data, headers=self.headers)
-        if r.status == 429:
+        if r.status_code == 429:
             raise errors.RatelimitError('Ratelimit reached.', int(r.headers['Rate-Limit-Reset']))
-        elif r.status == 400:
+        elif r.status_code == 400:
             raise errors.APIError('Invalid data passed to API.')

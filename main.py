@@ -1,57 +1,67 @@
 from datetime import datetime
+from fastapi.responses import JSONResponse
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from utils.api import Govee
 from utils import errors
 
-import aiohttp
-import asyncio
 import random
+import time
 
 API_KEY = ''
 
-
-async def seizure() -> None:
-    session = aiohttp.ClientSession()
-
-    try:
-        api = Govee(session, API_KEY)
-        try:
-            devices = await api.get_devices()
-        except errors.RatelimitError as rl:
-            sleep = round((rl.time - datetime.now()).total_seconds())
-            if sleep > 1:
-                print(f"Ratelimit reached, sleeping for {sleep} seconds...")
-                await asyncio.sleep(sleep)
+app = FastAPI()
+api = Govee(API_KEY)
 
 
-        if len(devices) == 0:
-            raise IndexError('No devices found.')
+def _disable_lights():
+    devices = api.devices
+    api.disable(devices[0])
 
-        await api.set_brightness(devices[0], 100)
-        while True:
-            colors = ('aqua', 'blue', 'green', 'orange', 'pink', 'purple', 'red', 'white', 'yellow')
-            try:
-                await api.set_color(devices[0], random.choice(colors))
-            except errors.RatelimitError as rl:
-                sleep = round((rl.time - datetime.now()).total_seconds())
-                if sleep > 1:
-                    print(f"Ratelimit reached, sleeping for {sleep} seconds...")
-                    await asyncio.sleep(sleep)
+def _enable_lights():
+    devices = api.devices
+    api.enable(devices[0])
 
-    finally:
-        await session.close()
+def _seizure():
+    api.seizure_running = True
+    devices = api.devices
 
+    api.set_brightness(devices[0], 100)
 
-async def main() -> None:
-    session = aiohttp.ClientSession()
+    start_time = time.time()
+    while (time.time() - start_time) < 10:
+        colors = ('aqua', 'blue', 'green', 'orange', 'pink', 'purple', 'red', 'white', 'yellow')
+        api.set_color(devices[0], random.choice(colors))
 
-    try:
-        api = Govee(session, API_KEY)
-        devices = await api.get_devices()
-        print(f"There's {len(devices)} device{'' if len(devices) == 1 else 's'} connected to your Govee account.")
+    api.seizure_running = False
 
-    finally:
-        await session.close()
+@app.get('/govee/enable')
+def enable_lights(task: BackgroundTasks):
+    task.add_task(_enable_lights)
 
+    return {'status': 'ok'}
 
-if __name__ == '__main__':
-    asyncio.run(seizure())
+@app.get('/govee/disable')
+def disable_lights(task: BackgroundTasks):
+    task.add_task(_disable_lights)
+
+    return {'status': 'ok'}
+
+@app.get('/govee/seizure')
+def seizure(task: BackgroundTasks):
+    if not api.seizure_running:
+        task.add_task(_seizure)
+
+        return {'status': 'ok'}
+    else:
+        raise HTTPException(status_code=425, detail='Seizure lights already running.')
+
+@app.exception_handler(errors.AuthError)
+def auth_error(request: Request, e: errors.APIError): return JSONResponse(status_code=401, content={'error': 'Invalid API key provided.'})
+
+@app.exception_handler(errors.DevicesError)
+def devices_error(request: Request, e: errors.DevicesError): return JSONResponse(status_code=404, content={'error': 'No devices found.'})
+
+@app.exception_handler(errors.RatelimitError)
+def ratelimit_error(request: Request, e: errors.RatelimitError):
+    sleep = round((e.time - datetime.now()).total_seconds(), 3)
+    return JSONResponse(status_code=429, content={'error': f'Ratelimit reached, please wait {sleep}s.'})
