@@ -21,6 +21,8 @@ To host, follow these steps:
 
         gunicorn main:app --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:80
 
+## API Documentation
+API documentation can be found at `http://{IP}:80/docs`, replacing `{IP}` with either `localhost` or the IP address of the device you're hosting Govee API on.
 
 ## Support
 
