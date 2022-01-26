@@ -9,17 +9,17 @@ import os
 
 API_KEY = os.environ.get('GOVEE_API_KEY')
 
-app = FastAPI()
+app = FastAPI(root_path='/govee')
 api = Govee(API_KEY)
 
-@app.get('/govee/devices')
+@app.get('/devices')
 def get_devices(api_key: str=Header(None)):
     if api_key != API_KEY:
         raise errors.AuthError('Invalid API key provided.')
 
     return [_['device'] for _ in api.devices]
 
-@app.post('/govee/actions/enable')
+@app.post('/actions/enable')
 def enable_lights(device: types.DeviceData, api_key: str=Header(None)):
     if api_key != API_KEY:
         raise errors.AuthError('Invalid API key provided.')
@@ -34,7 +34,7 @@ def enable_lights(device: types.DeviceData, api_key: str=Header(None)):
     api.enable(device)
     return {'status': 'ok'}
 
-@app.post('/govee/actions/disable')
+@app.post('/actions/disable')
 def disable_lights(device: types.DeviceData, api_key: str=Header(None)):
     if api_key != API_KEY:
         raise errors.AuthError('Invalid API key provided.')
@@ -49,7 +49,7 @@ def disable_lights(device: types.DeviceData, api_key: str=Header(None)):
     api.disable(device)
     return {'status': 'ok'}
 
-@app.post('/govee/set/brightness')
+@app.post('set/brightness')
 def set_brightness(device: types.DeviceData, brightness: types.BrightnessData, api_key: str=Header(None)):
     if api_key != API_KEY:
         raise errors.AuthError('Invalid API key provided.')
@@ -64,7 +64,7 @@ def set_brightness(device: types.DeviceData, brightness: types.BrightnessData, a
     api.set_brightness(device, brightness.level)
     return {'status': 'ok'}
 
-@app.post('/govee/set/color')
+@app.post('/set/color')
 def set_color(device: types.DeviceData, color: types.ColorData, api_key: str=Header(None)):
     if api_key != API_KEY:
         raise errors.AuthError('Invalid API key provided.')
